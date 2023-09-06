@@ -64,6 +64,8 @@ OpenLane integrated several key open source tools over the execution stages:
 12. Antenna Checks: Magic
 13. Circuit Validity Checker: CVC
 
+![flow_v1](https://github.com/KanishR1/vsd_openlane_workshop/assets/88330171/87ecc681-ab20-4c14-adae-a72c5cacfc70)
+
 ### OpenLane Installation
 Prior to the installation of the OpenLane install the dependencies and packages using the command shown below :</br>
 ``` 
