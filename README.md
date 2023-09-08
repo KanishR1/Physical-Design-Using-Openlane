@@ -96,7 +96,7 @@ sudo docker run hello-world
 **Steps to install OpenLane, PDKs and Tools**</br>
 ```
 cd $HOME
-git clone https://github.com/The-OpenROAD-Project/OpenLane
+git clone https://github.com/The-OpenROAD-Project/OpenLane --recurse-submodules 
 cd OpenLane
 make
 make test
