@@ -209,10 +209,12 @@ Synthesis Report
    Chip area for module '\picorv32': 102957.494400
 
 ```
+
+```
 Flop ratio = Number of D Flip flops = 1596  = 0.1579
              ______________________   _____
              Total Number of cells    10104
-
+```
 
 
 
