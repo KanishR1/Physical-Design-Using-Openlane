@@ -100,6 +100,8 @@ git clone https://github.com/The-OpenROAD-Project/OpenLane --recurse-submodules
 cd OpenLane
 make
 make test
+cd /home/kanish/OpenLane/designs/ci
+cp -r * ../
 ```
 
 ### Steps to run synthesis in OpenLane:
