@@ -218,6 +218,32 @@ Flop ratio = Number of D Flip flops = 1596  = 0.1579
              Total Number of cells    10104
 ```
 
+## Day - 2 Good Floorplan Vs Bad Floorplan and Introduction to Libraryt Cells
+### Utilization factor and Aspect ratio
+<img width="307" alt="a" src="https://github.com/KanishR1/vsd_openlane_workshop/assets/88330171/357c02fa-b849-41a1-8720-8c47094c220e">
+
+```
+Utilization Factor = Area occupied by netlist
+                     -------------------------
+                      Total area of the core 
+```
+```
+Aspect Ratio = Height of Core
+              ----------------
+               Width of Core
+```
+When the aspect ratio is 1, the chip is squared in shape.
+
+### Preplaced Cells
+The pre-placed cells are typically larger and more complex modules, such as memory blocks, complex functional units, or other predefined structures that are designed separately and then positioned in the layout before the placement and routing stages. Pre-placed cells are often used for several reasons:Performance optimization, IP integration and Power optimization. The preplaced cells are reused in the designs.These pre-placed cells should be surrounded by de-coupling capacitors. Decoupling capacitors are large capacitors that store electrical charge. They have a voltage across them similar to that of the power supply. When a circuit switches, the decoupling capacitor acts as a power source for the circuit, effectively isolating it from the main power supply. During switching events, the decoupling capacitor supplies the necessary current to the circuit. To minimize voltage drops, these capacitors are positioned in close proximity to the circuit. They ensure that the circuit receives the required current during switching operations. The purpose of the decoupling capacitor is to charge the circuit. When a switching activity occurs, the decoupling capacitor transfers some of its charge to the circuit. During periods of no switching activity, the decoupling capacitor replenishes its charge from the power supply.
+<img width="347" alt="59" src="https://github.com/KanishR1/vsd_openlane_workshop/assets/88330171/6b36fb30-980c-48ab-8c27-895f9e740867">
+
+### Power Planning
+Power planning in integrated circuit (IC) design involves the careful consideration and distribution of power and ground connections to ensure proper functionality and performance of the chip. One important aspect of power planning is the placement of multiple ground (GND) and supply voltage (VDD) points throughout the IC layout.The need for multiple GND and VDD points arises due to several reasons:By providing multiple GND and VDD points, the power can be distributed more evenly throughout the chip, reducing the chances of voltage drops and improving overall power delivery efficiency. Ground bounce occurs when there are variations in the voltage levels of different GND points due to transient currents. Similarly, power supply noise refers to fluctuations in the VDD levels caused by switching events. By strategically placing multiple GND and VDD points, the impact of ground bounce and power supply noise can be minimized, improving circuit performance and reducing the risk of functional failures.
+
+<img width="517" alt="68" src="https://github.com/KanishR1/vsd_openlane_workshop/assets/88330171/2ba3adcf-8a1d-4ef6-9e14-11a9e5cb0608">
+
+
 
 
 
