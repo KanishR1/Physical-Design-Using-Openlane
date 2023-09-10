@@ -275,7 +275,7 @@ To perform placemnet
 run_placement
 ```
 ![plac](./images/placement_op.png)
-To view the floor planning in magic :
+To view the placement in magic :
 ```
 cd /home/kanish/Physical-Design-Using-Openlane/OpenLane/designs/picorv32a/runs/RUN_2023.09.10_16.53.19/results/placement
 magic -T /home/kanish/.volare/sky130A/libs.tech/magic/sky130A.tech lef read ../../tmp/merged.nom.lef def read picorv32.def &
@@ -339,6 +339,142 @@ Rise transition time = time(slew_high_rise_thr) - time (slew_low_rise_thr)
 
 Low transition time = time(slew_high_fall_thr) - time (slew_low_fall_thr)
 ```
+
+## Day -3 Design Library Cell using magic layout and ngspice charcterization
+### Switching Threshold (Vm)
+In physical design, the switching threshold Vm is like a critical voltage level for a component called a CMOS inverter. It's the point at which this inverter switches between sending out a "0" or a "1" in a computer chip. This Vm is super important because it decides how well the CMOS inverter works. Now, when we want to see how this CMOS inverter behaves, we do two types of tests. First, we have the static test, where we check how it acts when everything's stable. We look at things like how fast it can send a signal, how much power it uses, and how safe it is against errors. Then, there's the dynamic test, where we see what happens when it's switching on and off. This helps us figure out how quickly it can change from "0" to "1" and back, how strong the signals are, and if there are any weird issues like sudden changes or stuck states. Both these tests are crucial in making sure CMOS inverters work well in computer chips. They help us make sure the chip does its job correctly and efficiently.
+
+![swt](./images/img.png)
+
+### Steps to view Inverter Layout by VLSI System Design
+
+```
+git clone https://github.com/nickson-jose/vsdstdcelldesign.git
+```
+To view the layout of the inverter in magic :
+```
+magic -T ./libs/sky130A.tech sky130_inv.mag &
+```
+![inv](./images/vsd_std_cell.png)
+
+### Summary N-Well Process
+The 16-mask CMOS design fabrication process involves several steps to create integrated circuits. Here is a brief description of each step:
+
+1. Substrate Preparation: The process begins with preparing a silicon wafer, which serves as the substrate for the integrated circuit.
+
+2. N-Well Formation: The N-well regions are created on the substrate by introducing impurities, typically phosphorus, through ion implantation or diffusion.
+
+3. P-Well Formation: Similar to the N-well formation, P-well regions are created using ion implantation or diffusion with boron or other suitable dopants.
+
+4. Gate Oxide Deposition: A thin layer of silicon dioxide is deposited on the substrate, forming the gate oxide.
+
+5. Poly-Silicon Deposition: A layer of polysilicon is deposited on the gate oxide layer, which will later serve as the gate electrode.
+
+6. Poly-Silicon Masking and Etching: A photoresist mask is applied to define the areas where the poly-silicon layer needs to be preserved, and then etching is performed to remove the exposed portions.
+
+7. N-Well Masking and Implantation: A photoresist mask is used to define the areas where the N-well regions should be preserved. Phosphorus or other suitable impurities are then implanted into the exposed regions.
+
+8. P-Well Masking and Implantation: Similarly, a photoresist mask is used to define the areas where the P-well regions should be preserved. Boron or other suitable impurities are implanted into the exposed regions.
+
+9. Source/Drain Implantation: The areas for source and drain regions are defined using a photoresist mask, and dopants (e.g., arsenic or phosphorus for NMOS, boron or BF2 for PMOS) are implanted into the exposed regions.
+
+10. Gate Formation: The gate electrode is defined by etching the poly-silicon layer using a photoresist mask.
+
+11. Source/Drain Masking and Etching: A photoresist mask is applied to define the source and drain regions, and etching is performed to remove the oxide layer in those areas.
+
+12. Contact/Via Formation: Contact holes or vias are etched through the oxide layer to expose the underlying regions, such as the source/drain regions or poly-silicon gates.
+
+13. Metal Deposition: A layer of metal, typically aluminum or copper, is deposited on the wafer surface to form the interconnects.
+
+14. Metal Masking and Etching: A photoresist mask is used to define the metal interconnects, and etching is performed to remove the exposed metal, leaving behind the desired interconnect patterns.
+
+15. Passivation Layer Deposition: A protective layer, often made of silicon dioxide or nitride, is deposited to isolate and shield the metal interconnects.
+
+16. Final Testing and Packaging: The fabricated wafer undergoes rigorous testing to ensure the functionality of the integrated circuits. The working chips are then separated, packaged, and prepared for use in various electronic devices.
+Each of these steps plays a crucial role in the fabrication process, contributing to the successful creation of CMOS integrated circuits with 16 masks.
+
+![16_step](./images/16_step.png)
+
+### SPICE extraction from MAGIC
+To extract spice netlist from magic use the following command in magic tkon window
+```
+extract all
+ext2spice cthresh 0 rthresh 0
+ext2spice
+```
+
+ext2spice commands converts the ext file to spice netlist. cthreh and rthresh are the switches to extract all the parasitic resistance and capacitance.
+The extracted spice list has to be modified as shown below to use ngspice to perform simulation:
+```
+* SPICE3 file created from sky130_inv.ext - technology: sky130A
+
+.option scale=0.01u
+.include ./libs/pshort.lib
+.include ./libs/nshort.lib
+
+//.subckt sky130_inv A Y VPWR VGND
+M1000 Y A VGND VGND nshort_model.0 w=35 l=23
++  ad=1.44n pd=0.152m as=1.37n ps=0.148m
+M1001 Y A VPWR VPWR pshort_model.0 w=37 l=23
++  ad=1.44n pd=0.152m as=1.52n ps=0.156m
+
+VDD VPWR 0 3.3V
+VSS VGND 0 0V
+Va A VGND PULSE(0V 3.3V 0 0.1ns 0.1ns 2ns 4ns)
+
+C0 A VPWR 0.0774f
+C1 VPWR Y 0.117f
+C2 A Y 0.0754f
+C3 Y VGND 2f
+C4 A VGND 0.45f
+C5 VPWR VGND 0.781f
+//.ends
+
+.tran 1n 20n
+.control
+run
+.endc
+.end
+```
+
+To simulate the spice netlist type the following command in the terminal:
+```
+ngspice sky130_inv.spice
+```
+To plot the wave form type
+```
+plot y vs time a
+```
+![ngspice](./images/ngspice_plt.png)
+
+characterization of the inverter standard cell depends on Four timing parameters
+ 
+ **Rise Transition**: Time taken for the output to rise from 20% to 80% of max value
+
+ **Fall Transition**: Time taken for the output to fall from 80% to 20% of max value
+
+ **Cell Rise delay**: difference in time(50% output rise) to time(50% input fall)
+ 
+ **Cell Fall delay**: difference in time(50% output fall) to time(50% input rise)
+ 
+ The above timing parameters can be computed by noting down various values from the ngspice waveform.
+ 
+ ``` 
+ Rise Transition : 2.25421 - 2.18636 = 0.006785 ns / 67.85ps
+ ```
+ ```
+ Fall Transitio : 4.09605 - 4.05554 = 0.04051ns/40.51ps 
+ ```
+ ```
+ Cell Rise Delay : 2.21701 - 2.14989 = 0.06689ns/66.89ps 
+ ```
+ ```
+ Cell Fall Delay : 4.07816 - 4.05011 = 0.02805ns/28.05ps 
+ ```
+
+
+
+
 
 
 
