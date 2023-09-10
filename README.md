@@ -238,14 +238,105 @@ When the aspect ratio is 1, the chip is squared in shape.
 The pre-placed cells are typically larger and more complex modules, such as memory blocks, complex functional units, or other predefined structures that are designed separately and then positioned in the layout before the placement and routing stages. Pre-placed cells are often used for several reasons:Performance optimization, IP integration and Power optimization. The preplaced cells are reused in the designs.These pre-placed cells should be surrounded by de-coupling capacitors. Decoupling capacitors are large capacitors that store electrical charge. They have a voltage across them similar to that of the power supply. When a circuit switches, the decoupling capacitor acts as a power source for the circuit, effectively isolating it from the main power supply. During switching events, the decoupling capacitor supplies the necessary current to the circuit. To minimize voltage drops, these capacitors are positioned in close proximity to the circuit. They ensure that the circuit receives the required current during switching operations. The purpose of the decoupling capacitor is to charge the circuit. When a switching activity occurs, the decoupling capacitor transfers some of its charge to the circuit. During periods of no switching activity, the decoupling capacitor replenishes its charge from the power supply.
 <img width="347" alt="59" src="https://github.com/KanishR1/vsd_openlane_workshop/assets/88330171/6b36fb30-980c-48ab-8c27-895f9e740867">
 
+### Decoupling Capacitor
+Decoupling capacitors constitute an indispensable element within the realm of electronic circuit design, particularly in the context of integrated circuits (ICs) and printed circuit boards (PCBs). Their primary purpose revolves around the stabilization of power supply voltage levels, a crucial function in mitigating noise and upholding consistent voltage for delicate components. As electronic apparatuses operate at elevated frequencies, abrupt shifts in current demands can incite voltage fluctuations and unwanted noise, thereby resulting in performance dilemmas and signal deterioration. Decoupling capacitors, akin to a safeguard, establish a local storehouse of electrical charge that can swiftly respond to these fluctuations. Essentially, they act as reservoirs, storing and disbursing electrical energy as required, effectively sieving out undesirable noise and voltage oscillations. 
+
+Decoupling capacitors are strategically sited in close proximity to power-thirsty constituents, such as microprocessors, digital logic circuits, or high-speed memory modules, where they adeptly soak up and provide instant current requisites. Through curbing voltage fluctuations, they heighten the overall fidelity of signals and prevent potential issues like ground disturbance, signal interference, and electromagnetic perturbations. The physical configuration of decoupling capacitors necessitates judiciously determining the appropriate capacitance magnitude, voltage rating, and package dimensions based on the distinct requisites of the circuit. The capacitance value must adequately meet current necessities and the frequency spectrum of the circuit. Greater capacitance values promise superior noise suppression but can introduce bulkier physical dimensions and cost ramifications. Furthermore, the placement of decoupling capacitors assumes paramount importance, requiring them to be positioned as proximate as feasible to the power and ground pins of the targeted components, thereby minimizing inductance and resistance along the supply path. This close proximity ensures efficient energy transmission between the power source and the components, concurrently diminishing impedance and maximizing the capacitor's efficacy.
+
 ### Power Planning
 Power planning in integrated circuit (IC) design involves the careful consideration and distribution of power and ground connections to ensure proper functionality and performance of the chip. One important aspect of power planning is the placement of multiple ground (GND) and supply voltage (VDD) points throughout the IC layout.The need for multiple GND and VDD points arises due to several reasons:By providing multiple GND and VDD points, the power can be distributed more evenly throughout the chip, reducing the chances of voltage drops and improving overall power delivery efficiency. Ground bounce occurs when there are variations in the voltage levels of different GND points due to transient currents. Similarly, power supply noise refers to fluctuations in the VDD levels caused by switching events. By strategically placing multiple GND and VDD points, the impact of ground bounce and power supply noise can be minimized, improving circuit performance and reducing the risk of functional failures.
 
 <img width="517" alt="68" src="https://github.com/KanishR1/vsd_openlane_workshop/assets/88330171/2ba3adcf-8a1d-4ef6-9e14-11a9e5cb0608">
 
 
+### Pin Placement
+Pin placement in physical design is all about how and where we put the input/output pins on a chip or circuit board. It's important because it affects how well signals move around, how little they get messed up, and how easy it is to build and test the device. We have to think about things like keeping the signals strong, spreading out power evenly, managing heat, and making sure it fits with standard connectors and packaging. When we do this pin placement right, it makes the electronic system more reliable, easier to build, and more user-friendly.
+
+### Steps to perform Floorplanning and Placement
+**Floorplanning**</br>
+To perform floor planning
+```
+run_floorplanning
+```
+![floorplan](./images/floorplan_op.png)
+
+To view the floor planning in magic :
+```
+cd /home/kanish/Physical-Design-Using-Openlane/OpenLane/designs/picorv32a/runs/RUN_2023.09.10_16.53.19/results/floorplanning
+magic -T /home/kanish/.volare/sky130A/libs.tech/magic/sky130A.tech lef read ../../tmp/merged.nom.lef def read picorv32.def &
+```
+![magic_floorpplan](./images/magic_fp_view.png)
+
+**Placement**</br>
+To perform placemnet 
+```
+run_placement
+```
+![plac](./images/placement_op.png)
+To view the floor planning in magic :
+```
+cd /home/kanish/Physical-Design-Using-Openlane/OpenLane/designs/picorv32a/runs/RUN_2023.09.10_16.53.19/results/placement
+magic -T /home/kanish/.volare/sky130A/libs.tech/magic/sky130A.tech lef read ../../tmp/merged.nom.lef def read picorv32.def &
+```
+![pol](./images/placement_magic.png)
+
+### CELL DESIGN AND CHARACETRIZATION FLOWS
+
+Library is a place where we get information about every cell. It has differents cells with different size, functionality,threshold voltages. There is a typical cell design flow steps.
+1. Inputs : PDKS(process design kit) : DRC & LVS, SPICE Models, library & user-defined specs.
+2. Design Steps :Circuit design, Layout design (Art of layout Euler's path and stick diagram), Extraction of parasitics, Characterization (timing, noise, power).
+3. Outputs: CDL (circuit description language), LEF, GDSII, extracted SPICE netlist (.cir), timing, noise and power .lib files
+
+### Standard Cell Characterization Flow
+
+A typical standard cell characterization flow that is followed in the industry includes the following steps:
+
+1. Read in the models and tech files
+2. Read extracted spice Netlist
+3. Recognise behavior of the cells
+4. Read the subcircuits
+5. Attach power sources
+6. Apply stimulus to characterization setup
+7. Provide neccesary output capacitance loads
+8. Provide neccesary simulation commands
+
+Now all these 8 steps are fed in together as a configuration file to a characterization software called GUNA. This software generates timing, noise, power models.
+These .libs are classified as Timing characterization, power characterization and noise characterization.
 
 
+### TIMING CHARACTERIZATION
+
+In standard cell characterisation, One of the classification of libs is timing characterisation.
+
+#### Timing threshold definitions 
+Timing defintion |	Value
+-------------- | --------------
+slew_low_rise_thr	| 20% value
+slew_high_rise_thr | 80% value
+slew_low_fall_thr |	20% value
+slew_high_fall_thr |	80% value
+in_rise_thr	| 50% value
+in_fall_thr |	50% value
+out_rise_thr |	50% value
+out_fall_thr | 50% value
+
+#### Propagation Delay and Transition Time 
+
+**Propagation Delay** 
+The time difference between when the transitional input reaches 50% of its final value and when the output reaches 50% of its final value. Poor choice of threshold values lead to negative delay values. Even thought you have taken good threshold values, sometimes depending upon how good or bad the slew, the dealy might be still +ve or -ve.
+
+```
+Propagation delay = time(out_thr) - time(in_thr)
+```
+**Transition Time**
+
+The time it takes the signal to move between states is the transition time , where the time is measured between 10% and 90% or 20% to 80% of the signal levels.
+
+```
+Rise transition time = time(slew_high_rise_thr) - time (slew_low_rise_thr)
+
+Low transition time = time(slew_high_fall_thr) - time (slew_low_fall_thr)
+```
 
 
 
