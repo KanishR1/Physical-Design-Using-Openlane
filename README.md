@@ -1,12 +1,6 @@
 # Physical-Design-Using-Openlane
 ## Table of Contents
 - [Day - 1 Inception of Open-Source EDA, OpenLane and Sky130 PDK](#day---1-inception-of-open-source-eda-openlane-and-sky130-pdk)
-    + [Introduction to RISC-V](#introduction-to-risc-v)
-    + [How the software applications run on the hardware ?](#how-the-software-applications-run-on-the-hardware)
-    + [Open-Source Digital ASIC Design](#open-source-digital-asic-design)
-    + [Simplified RTL to GDSII flow](#simplified-rtl-to-gdsii-flow)
-    + [Introduction to OpenLANE](#introduction-to-openlane)
-    + [OpenLane Installation](#openlane-installation)
 - [Acknowledgement](#acknowledgement)
 - [References](#references)
 
@@ -473,8 +467,326 @@ characterization of the inverter standard cell depends on Four timing parameters
  ```
 
 
+## DAY 4  Timing Analysis and Clock Tree Synthesis (CTS)
 
 
+## Custom cell naming and lef extraction.
+
+Name the custom cell through tkcon window as ```sky130_vsdinv.mag```.
+
+We generate lef file by command:
+
+```
+lef write
+
+```
+This generates sky130_vsdinv.lef file.
+
+
+## Steps to include custom cell in ASIC design
+
+We have created a custom standard cell in previous steps of an inverter. Copy lef file, sky130_fd_sc_hd_typical.lib, sky130_fd_sc_hd_slow.lib & sky130_fd_sc_hd_fast.lib to src folder of picorv32a from libs folder vsdstdcelldesign. Then modify the config.tcl as follows.
+
+```
+
+# Design
+set ::env(DESIGN_NAME) "picorv32a"
+
+set ::env(VERILOG_FILES) "$::env(DESIGN_DIR)/src/picorv32a.v"
+
+set ::env(CLOCK_PORT) "clk"
+set ::env(CLOCK_NET) $::env(CLOCK_PORT)
+
+set ::env(GLB_RESIZER_TIMING_OPTIMIZATIONS) {1}
+
+set ::env(LIB_SYNTH) "$::env(OPENLANE_ROOT)/designs/picorv32a/src/sky130_fd_sc_hd__typical.lib"
+set ::env(LIB_SLOWEST) "$::env(OPENLANE_ROOT)/designs/picorv32a/src/sky130_fd_sc_hd__slow.lib"
+set ::env(LIB_FASTEST) "$::env(OPENLANE_ROOT)/designs/picorv32a/src/sky130_fd_sc_hd__fast.lib"
+set ::env(LIB_TYPICAL) "$::env(OPENLANE_ROOT)/designs/picorv32a/src/sky130_fd_sc_hd__typical.lib"
+
+set ::env(EXTRA_LEFS) [glob $::env(OPENLANE_ROOT)/designs/$::env(DESIGN_NAME)/src/*.lef]
+
+set filename $::env(DESIGN_DIR)/$::env(PDK)_$::env(STD_CELL_LIBRARY)_config.tcl
+if { [file exists $filename] == 1} {
+	source $filename
+}
+
+```
+
+To integrate standard cell in openlane flow after `` make mount `` , perform following commands:
+
+```
+prep -design picorv32a -tag RUN_2023.09.09_20.37.18 -overwrite 
+set lefs [glob $::env(DESIGN_DIR)/src/*.lef]
+add_lefs -src $lefs
+run_synthesis
+
+```
+synthesis report :
+
+
+sta report:
+
+
+## Delay Tables
+
+Basically, Delay is a parameter that has huge impact on our cells in the design. Delay decides each and every other factor in timing. 
+For a cell with different size, threshold voltages, delay model table is created where we can it as timing table.
+```Delay of a cell depends on input transition and out load```. 
+Lets say two scenarios, 
+we have long wire and the cell(X1) is sitting at the end of the wire : the delay of this cell will be different because of the bad transition that caused due to the resistance and capcitances on the long wire.
+we have the same cell sitting at the end of the short wire: the delay of this will be different since the tarn is not that bad comapred to the earlier scenario.
+Eventhough both are same cells, depending upon the input tran, the delay got chaned. Same goes with o/p load also.
+
+VLSI engineers have identified specific constraints when inserting buffers to preserve signal integrity. They've noticed that each buffer level must maintain consistent sizing, but their delays can vary depending on the load they drive. To address this, they introduced the concept of "delay tables," which essentially consist of 2D arrays containing values for input slew and load capacitance, each associated with different buffer sizes. These tables serve as timing models for the design.
+
+When the algorithm works with these delay tables, it utilizes the provided input slew and load capacitance values to compute the corresponding delay values for the buffers. In cases where the precise delay data is not readily available, the algorithm employs a technique of interpolation to determine the closest available data points and extrapolates from them to estimate the required delay values.
+
+## Openlane steps with custom standard cell
+
+We perform synthesis and found that it has positive slack and met timing constraints.
+
+During Floorplan,``` 504 endcaps, 6731 tapcells ``` got placed. Design has 275 original rows
+
+Now ``` run_placement```
+
+After placement, we check for legality &To check the layout invoke magic from the results/placement directory:
+
+```
+magic -T /home/parallels/OpenLane/vsdstdcelldesign/libs/sky130A.tech lef read tmp/merged.nom.lef def read results/floorplan/picorv32a.def &
+
+```
+
+![Screenshot from 2023-09-11 10-44-31](https://github.com/alwinshaju08/Physicaldesign_openlane/assets/69166205/4344be1e-881b-492e-910f-e3a27b052eda)
+
+
+### Post-synthesis timing analysis Using OpenSTA 
+
+Timing analysis is carried out outside the openLANE flow using OpenSTA tool. For this, ```pre_sta.conf``` is required to carry out the STA analysis. Invoke OpenSTA outside the openLANE flow as follows:
+ 
+```
+sta pre_sta.conf
+```
+
+sdc file for OpenSTA is modified like this:
+
+base.sdc is located in vsdstdcelldesigns/extras directory.
+So, I copied it into our design folder using
+
+``` cp my_base.sdc /home/parallels/OpenLane/designs/picorv32a/src/ ```
+
+Since I have no Violations I skipped this, but have hands on experience on timing analysis using OpenSTA.
+
+Since clock is propagated only once we do CTS, In placement stage, clock is considered to be ideal. So only setup slack is taken into consideration before CTS.
+
+``` 
+Setup time: minimum time required for the data to be stable before the active edge of the clock to get properly captured.
+
+Setup slack : data required time - data arrival time 
+
+```
+clock is generated from PLL which has inbuilt circuit which cells and some logic. There might variations in the clock generation depending upon the ckt. These variations are collectivity known as clock uncertainity. In that jitter is one of the parameter. It is uncertain that clock might come at that exact time withought any deviation. That is why it is called clock_uncertainity
+Skew, Jitter and Margin comes into clock_uncertainity
+
+```  Clock Jitter : deviation of clock edge from its original position. ```
+
+From the timing report, we can improve slack by upsizing the cells i.e., by replacing the cells with high drive strength and we can see significant changes in the slack.
+
+### Clock Tree Synthesis using Tritoncts
+
+Clock tree synthesis (CTS) can be implemented in various ways, and the choice of the specific technique depends on the design requirements, constraints, and goals. Here are some different types or approaches to clock tree synthesis:
+
+Balanced Tree CTS:
+In a balanced tree CTS, the clock signal is distributed in a balanced manner, often resembling a binary tree structure.
+This approach aims to provide roughly equal path lengths to all clock sinks (flip-flops) to minimize clock skew.
+It's relatively straightforward to implement and analyze but may not be the most power-efficient solution.
+
+H-tree CTS:
+An H-tree CTS uses a hierarchical tree structure, resembling the letter "H."
+It is particularly effective for distributing clock signals across large chip areas.
+The hierarchical structure can help reduce clock skew and optimize power consumption.
+
+Star CTS:
+In a star CTS, the clock signal is distributed from a single central point (like a star) to all the flip-flops.
+This approach simplifies clock distribution and minimizes clock skew but may require a higher number of buffers near the source.
+
+Global-Local CTS:
+Global-Local CTS is a hybrid approach that combines elements of both star and tree topologies.
+The global clock tree distributes the clock signal to major clock domains, while local trees within each domain further distribute the clock.
+This approach balances between global and local optimization, addressing both chip-wide and domain-specific clocking requirements.
+
+Mesh CTS:
+In a mesh CTS, clock wires are arranged in a mesh-like grid pattern, and each flip-flop is connected to the nearest available clock wire.
+It is often used in highly regular and structured designs, such as memory arrays.
+Mesh CTS can offer a balance between simplicity and skew minimization.
+
+Adaptive CTS:
+Adaptive CTS techniques adjust the clock tree structure dynamically based on the timing and congestion constraints of the design.
+This approach allows for greater flexibility and adaptability in meeting design goals but may be more complex to implement.
+
+# crosstalk in VLSI:
+Impact: Crosstalk is a significant concern in VLSI design due to the high integration density of components on a chip. Uncontrolled crosstalk can lead to data corruption, timing violations, and increased power consumption.
+Mitigation: VLSI designers employ various techniques to mitigate crosstalk, such as optimizing layout and routing, using appropriate shielding, implementing proper clock distribution strategies, and utilizing clock gating to reduce dynamic power consumption when logic is idle
+
+# Clock Net Shielding in VLSI:
+Purpose: In VLSI circuits, the clock distribution network is crucial for synchronous operation. Clock signals must reach all parts of the chip while minimizing skew and maintaining signal integrity.
+Shielding Techniques: VLSI designers may use shielding techniques to isolate the clock network from other signals, reducing the risk of interference. This can include dedicated clock routing layers, clock tree synthesis algorithms, and buffer insertion to manage clock distribution more effectively.
+Clock Domain Isolation: VLSI designs often have multiple clock domains. Shielding and proper clock gating help ensure that clock signals do not propagate between domains, avoiding metastability issues and maintaining synchronization.
+
+# lab:
+
+In this stage clock is propagated and make sure that clock reaches each and every clock pin from clock source with mininimum skew and insertion delay. Inorder to do this, we implement H-tree using mid point strategy. For balancing the skews, we use clock invteres or bufferes in the clock path. 
+Before attempting to run CTS in TritonCTS tool, if the slack was attempted to be reduced in previous run, the netlist may have gotten modified by cell replacement techniques. Therefore, the verilog file needs to be modified using the ```write_verilog``` command. Then, the synthesis, floorplan and placement is run again. To run CTS use the below command:
+
+```
+run_cts
+```
+After CTS run, my slack values are
+``` setup:12.97,Hold:0.23 ```
+
+here my both values are not voilating 
+
+Since, clock is propagated, from this stage, we do timing analysis with real clocks. From now post cts analysis is performed by operoad within the openlane flow 
+
+```
+openroad
+read_lef <path of merge.nom.lef>
+read_def <path of def>
+write_db pico_cts.db
+read_db pico_cts.db
+read_verilog /home/parallels/OpenLane/designs/picorv32a/runs/RUN_09-09_11-20/results/synthesis/picorv32a.v
+read_liberty $::env(LIB_SYNTH_COMPLETE)
+read_sdc /home/parallels/OpenLane/designs/picorv32a/src/my_base.sdc
+set_propagated_clock (all_clocks)
+report_checks -path_delay min_max -format full_clock_expanded -digits 4
+``` 
+
+
+
+
+## Day 5 : Final steps in RTL2GDS
+	
+ # Maze Routing and Lee's algorithm
+
+ Routing is the process of establishing a physical connection between two pins. Algorithms designed for routing take source and target pins and aim to find the most efficient path between them, ensuring a valid connection exists.
+
+The Maze Routing algorithm, such as the Lee algorithm, is one approach for solving routing problems. In this method, a grid similar to the one created during cell customization is utilized for routing purposes. The Lee algorithm starts with two designated points, the source and target, and leverages the routing grid to identify the shortest or optimal route between them.
+
+The algorithm assigns labels to neighboring grid cells around the source, incrementing them from 1 until it reaches the target (for instance, from 1 to 7). Various paths may emerge during this process, including L-shaped and zigzag-shaped routes. The Lee algorithm prioritizes selecting the best path, typically favoring L-shaped routes over zigzags. If no L-shaped paths are available, it may resort to zigzag routes. This approach is particularly valuable for global routing tasks.
+
+However, the Lee algorithm has limitations. It essentially constructs a maze and then numbers its cells from the source to the target. While effective for routing between two pins, it can be time-consuming when dealing with millions of pins. There are alternative algorithms that address similar routing challenges.
+
+# Design Rule Check (DRC)
+
+DRC verifies whether a design meets the predefined process technology rules given by the foundry for its manufacturing. DRC checking is an essential part of the physical design flow and ensures the design meets manufacturing requirements and will not result in a chip failure. It defines the Quality of chip. They are so many DRCs, let us see few of them
+
+Design rules for physical wires
+
+Minimum width of the wire
+Minimum spacing between the wires
+Minimum pitch of the wire To solve signal short violation, we take the metal layer and put it on to upper metal layer. we check via rules
+Via width
+via spacing
+
+!
+
+## Power Distribution Network generation
+
+Unlike the general ASIC flow, Power Distribution Network generation is not a part of floorplan run in OpenLANE. PDN must be generated after CTS and post-CTS STA analyses:
+
+we can check whether PDN has been created or no by check the current def environment variable: ``` echo $::env(CURRENT_DEF)```
+
+```
+prep -design picorv32a -tag Run 12.07.10.11
+gen_pdn
+
+```
+
+
+- Once the command is given, power distribution netwrok is generated.
+- The power distribution network has to take the ```design_cts.def``` as the input def file.
+- Power rings,strapes and rails are created by PDN.
+- From VDD and VSS pads, power is drawn to power rings.
+- Next, the horizontal and vertical strapes connected to rings draw the power from strapes.
+- Stapes are connected to rings and these rings are connected to std cells. So, standard cells get power from rails.
+- The standard cells are designed such that it's height is multiples of the vertical tracks /track pitch.Here, the pitch is 2.72. Only if the above conditions are adhered it is possible to power the standard cells.
+- There are definitions for the straps and the rails. In this design, straps are at metal layer 4 and 5 and the standard cell rails are at the metal layer 1. Vias connect accross the layers as required.
+
+## Routing
+
+ In the realm of routing within Electronic Design Automation (EDA) tools, such as both OpenLANE and commercial EDA tools, the routing process is exceptionally intricate due to the vast design space. To simplify this complexity, the routing procedure is typically divided into two distinct stages: Global Routing and Detailed Routing.
+
+The two routing engines responsible for handling these two stages are as follows:
+
+- **Global Routing**: In this stage, the routing region is subdivided into rectangular grid cells and represented as a coarse 3D routing graph. This task is accomplished by the "FASTE ROUTE" engine.
+
+- **Detailed Routing**: Here, finer grid granularity and routing guides are employed to implement the physical wiring. The "tritonRoute" engine comes into play at this stage. "Fast Route" generates initial routing guides, while "Triton Route" utilizes the Global Route information and further refines the routing, employing various strategies and optimizations to determine the most optimal path for connecting the pins.
+
+## Key Features of TritonRoute
+
+- **Initial Detail Routing**: TritonRoute initiates the detailed routing process, providing the foundation for the subsequent routing steps.
+
+- **Adherence to Pre-Processed Route Guides**: TritonRoute places significant emphasis on following pre-processed route guides. This involves several actions:
+
+   - **Initial Route Guide Analysis**: TritonRoute analyzes the directions specified in the preferred route guides. If any non-directional routing guides are identified, it breaks them down into unit widths.
+
+   - **Guide Splitting**: In cases where non-directional routing guides are encountered, TritonRoute divides them into unit widths to facilitate routing.
+
+   - **Guide Merging**: TritonRoute merges guides that are orthogonal (touching guides) to the preferred guides, streamlining the routing process.
+
+   - **Guide Bridging**: When it encounters guides that run parallel to the preferred routing guides, TritonRoute employs an additional layer to bridge them, ensuring efficient routing within the preprocessed guides.
+   - Assumes route guide for each net satisfy inter guide connectivity Same metal layer with touching guides or neighbouring metal layers with nonzero  vertically overlapped area( via are placed ).each unconnected termial i.e., pin of a standard cell instance should have its pin shape overlapped by a routing guide( a black dot(pin) with purple box(metal1 layer))
+   - 
+
+
+In summary, TritonRoute is a sophisticated tool that not only performs initial detail routing but also places a strong emphasis on optimizing routing within pre-processed route guides by breaking down, merging, and bridging them as needed to achieve efficient and effective routing results.
+
+
+
+Works on MILP(Mixed Integer linear programming) based panel routing scheme with Intra-layer parallel and Inter-layer sequential routing framework
+
+# TritonRoute problem statement
+
+```
+Inputs : LEF, DEF, Preprocessed route guides
+Output : Detailed routing solution with optimized wire length and via count
+Constraints : Route guide honoring, connectivity constraints and design rules.
+
+```
+The space where the detailed route takes place has been defined. Now TritonRoute handles the connectivity in two ways.
+
+Access Point(AP) : An on-grid point on the metal of the route guide, and is used to connect to lower-layer segments, pins or IO ports,upper-layer segments.
+Access Point Cluster(APC) : A union of all the Aps derived from same lower-layer segment, a pin or an IO port, upper-layer guide.
+
+**TritonRoute run for routing**
+
+Make sure the CURRENT_DEF is set to pdn.def
+
+Start routing by using
+
+```
+run_routing
+```
+The options for routing can be set in the config.tcl file.
+The optimisations in routing can also be done by specifying the routing strategy to use different version of TritonRoute Engine. There is a trade0ff between the optimised route and the runtime for routing.
+
+For the default setting picorv32a takes approximately 30 minutes according to the current version of TritonRoute.
+
+Here drc violation is zero:
+
+
+## Layout in magic tool post routing: 
+
+The design can be viewed on magic within results/routing directory. Run the follwing command in that directory:
+
+```
+magic -T /home/parallels/OpenLane/vsdstdcelldesign/libs/sky130A.tech lef read tmp/merged.nom.lef def read results/routing/picorv32a.def &
+
+```
+
+
+## Word of Thanks
+I sciencerly thank **Mr. Kunal Gosh**(Founder/**VSD**) for helping me out to complete this flow smoothly.
 
 
 
@@ -488,4 +800,5 @@ characterization of the inverter standard cell depends on Four timing parameters
 [Reference Section]:#
 ## References
 1. https://www.eng.biu.ac.il/temanad/digital-vlsi-design/
-2. 
+2. https://github.com/bhargav-vlsi/Physical_design_open_lane
+3. https://github.com/alwinshaju08/Physicaldesign_openlane
