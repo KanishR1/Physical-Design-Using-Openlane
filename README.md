@@ -522,11 +522,7 @@ add_lefs -src $lefs
 run_synthesis
 
 ```
-synthesis report :
-
-
-sta report:
-
+![my_lef](./images/my_lef.png)
 
 ## Delay Tables
 
@@ -541,6 +537,7 @@ Eventhough both are same cells, depending upon the input tran, the delay got cha
 VLSI engineers have identified specific constraints when inserting buffers to preserve signal integrity. They've noticed that each buffer level must maintain consistent sizing, but their delays can vary depending on the load they drive. To address this, they introduced the concept of "delay tables," which essentially consist of 2D arrays containing values for input slew and load capacitance, each associated with different buffer sizes. These tables serve as timing models for the design.
 
 When the algorithm works with these delay tables, it utilizes the provided input slew and load capacitance values to compute the corresponding delay values for the buffers. In cases where the precise delay data is not readily available, the algorithm employs a technique of interpolation to determine the closest available data points and extrapolates from them to estimate the required delay values.
+![delay_tab](./images/delay_tab.png)
 
 ## Openlane steps with custom standard cell
 
@@ -557,8 +554,7 @@ magic -T /home/parallels/OpenLane/vsdstdcelldesign/libs/sky130A.tech lef read tm
 
 ```
 
-![Screenshot from 2023-09-11 10-44-31](https://github.com/alwinshaju08/Physicaldesign_openlane/assets/69166205/4344be1e-881b-492e-910f-e3a27b052eda)
-
+![my_lef](./images/my_lef.png)
 
 ### Post-synthesis timing analysis Using OpenSTA 
 
@@ -574,6 +570,8 @@ base.sdc is located in vsdstdcelldesigns/extras directory.
 So, I copied it into our design folder using
 
 ``` cp my_base.sdc /home/parallels/OpenLane/designs/picorv32a/src/ ```
+
+![my_base](./images/my_base.png)
 
 Since I have no Violations I skipped this, but have hands on experience on timing analysis using OpenSTA.
 
@@ -633,7 +631,7 @@ Purpose: In VLSI circuits, the clock distribution network is crucial for synchro
 Shielding Techniques: VLSI designers may use shielding techniques to isolate the clock network from other signals, reducing the risk of interference. This can include dedicated clock routing layers, clock tree synthesis algorithms, and buffer insertion to manage clock distribution more effectively.
 Clock Domain Isolation: VLSI designs often have multiple clock domains. Shielding and proper clock gating help ensure that clock signals do not propagate between domains, avoiding metastability issues and maintaining synchronization.
 
-# lab:
+# Labwork:
 
 In this stage clock is propagated and make sure that clock reaches each and every clock pin from clock source with mininimum skew and insertion delay. Inorder to do this, we implement H-tree using mid point strategy. For balancing the skews, we use clock invteres or bufferes in the clock path. 
 Before attempting to run CTS in TritonCTS tool, if the slack was attempted to be reduced in previous run, the netlist may have gotten modified by cell replacement techniques. Therefore, the verilog file needs to be modified using the ```write_verilog``` command. Then, the synthesis, floorplan and placement is run again. To run CTS use the below command:
@@ -661,7 +659,9 @@ set_propagated_clock (all_clocks)
 report_checks -path_delay min_max -format full_clock_expanded -digits 4
 ``` 
 
+![slk](./images/slack.png)
 
+![slk](./images/slack1.png)
 
 
 ## Day 5 : Final steps in RTL2GDS
@@ -676,19 +676,17 @@ The algorithm assigns labels to neighboring grid cells around the source, increm
 
 However, the Lee algorithm has limitations. It essentially constructs a maze and then numbers its cells from the source to the target. While effective for routing between two pins, it can be time-consuming when dealing with millions of pins. There are alternative algorithms that address similar routing challenges.
 
-# Design Rule Check (DRC)
+![rt](./images/rt.PNG)
+
+## Design Rule Check (DRC)
 
 DRC verifies whether a design meets the predefined process technology rules given by the foundry for its manufacturing. DRC checking is an essential part of the physical design flow and ensures the design meets manufacturing requirements and will not result in a chip failure. It defines the Quality of chip. They are so many DRCs, let us see few of them
 
 Design rules for physical wires
 
-Minimum width of the wire
-Minimum spacing between the wires
-Minimum pitch of the wire To solve signal short violation, we take the metal layer and put it on to upper metal layer. we check via rules
-Via width
-via spacing
+Minimum width of the wire, Minimum spacing between the wires, Minimum pitch of the wire To solve signal short violation, we take the metal layer and put it on to upper metal layer. we check via rules, Via width, via spacing.
 
-!
+
 
 ## Power Distribution Network generation
 
@@ -711,6 +709,8 @@ gen_pdn
 - Stapes are connected to rings and these rings are connected to std cells. So, standard cells get power from rails.
 - The standard cells are designed such that it's height is multiples of the vertical tracks /track pitch.Here, the pitch is 2.72. Only if the above conditions are adhered it is possible to power the standard cells.
 - There are definitions for the straps and the rails. In this design, straps are at metal layer 4 and 5 and the standard cell rails are at the metal layer 1. Vias connect accross the layers as required.
+
+![lay](./images/lay.png)
 
 ## Routing
 
@@ -740,8 +740,6 @@ The two routing engines responsible for handling these two stages are as follows
 
 
 In summary, TritonRoute is a sophisticated tool that not only performs initial detail routing but also places a strong emphasis on optimizing routing within pre-processed route guides by breaking down, merging, and bridging them as needed to achieve efficient and effective routing results.
-
-
 
 Works on MILP(Mixed Integer linear programming) based panel routing scheme with Intra-layer parallel and Inter-layer sequential routing framework
 
@@ -783,6 +781,8 @@ The design can be viewed on magic within results/routing directory. Run the foll
 magic -T /home/parallels/OpenLane/vsdstdcelldesign/libs/sky130A.tech lef read tmp/merged.nom.lef def read results/routing/picorv32a.def &
 
 ```
+
+![final](./images/final.png)
 
 
 ## Word of Thanks
