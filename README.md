@@ -554,7 +554,7 @@ Now ``` run_placement```
 After placement, we check for legality &To check the layout invoke magic from the results/placement directory:
 
 ```
-magic -T /home/parallels/OpenLane/vsdstdcelldesign/libs/sky130A.tech lef read tmp/merged.nom.lef def read results/floorplan/picorv32a.def &
+magic -T /home/kanish/OpenLane/vsdstdcelldesign/libs/sky130A.tech lef read tmp/merged.nom.lef def read results/floorplan/picorv32a.def &
 
 ```
 
@@ -573,7 +573,7 @@ sdc file for OpenSTA is modified like this:
 base.sdc is located in vsdstdcelldesigns/extras directory.
 So, I copied it into our design folder using
 
-``` cp my_base.sdc /home/parallels/OpenLane/designs/picorv32a/src/ ```
+``` cp my_base.sdc /home/kanish/OpenLane/designs/picorv32a/src/ ```
 
 ![my_base](./images/my_base.png)
 
@@ -656,9 +656,9 @@ read_lef <path of merge.nom.lef>
 read_def <path of def>
 write_db pico_cts.db
 read_db pico_cts.db
-read_verilog /home/parallels/OpenLane/designs/picorv32a/runs/RUN_09-09_11-20/results/synthesis/picorv32a.v
+read_verilog /home/kanish/OpenLane/designs/picorv32a/runs/RUN_09-09_11-20/results/synthesis/picorv32a.v
 read_liberty $::env(LIB_SYNTH_COMPLETE)
-read_sdc /home/parallels/OpenLane/designs/picorv32a/src/my_base.sdc
+read_sdc /home/kanish/OpenLane/designs/picorv32a/src/my_base.sdc
 set_propagated_clock (all_clocks)
 report_checks -path_delay min_max -format full_clock_expanded -digits 4
 ``` 
@@ -782,7 +782,7 @@ Here drc violation is zero:
 The design can be viewed on magic within results/routing directory. Run the follwing command in that directory:
 
 ```
-magic -T /home/parallels/OpenLane/vsdstdcelldesign/libs/sky130A.tech lef read tmp/merged.nom.lef def read results/routing/picorv32a.def &
+magic -T /home/kanish/OpenLane/vsdstdcelldesign/libs/sky130A.tech lef read tmp/merged.nom.lef def read results/routing/picorv32a.def &
 
 ```
 
